@@ -44,6 +44,7 @@ import com.google.android.exoplayer2.extractor.SeekMap;
 import com.google.android.exoplayer2.extractor.TrackOutput;
 import com.google.android.exoplayer2.extractor.mp4.Atom.ContainerAtom;
 import com.google.android.exoplayer2.extractor.mp4.Atom.LeafAtom;
+import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.metadata.emsg.EventMessage;
 import com.google.android.exoplayer2.metadata.emsg.EventMessageEncoder;
 import com.google.android.exoplayer2.util.Log;
@@ -506,11 +507,22 @@ public class FragmentedMp4Extractor implements Extractor {
       }
     }
 
+    // Read gapless info from udta
+    GaplessInfoHolder gaplessInfoHolder = new GaplessInfoHolder();
+
+    @Nullable Atom.LeafAtom udta = moov.getLeafAtomOfType(Atom.TYPE_udta);
+    if (udta != null) {
+      @Nullable Metadata udtaMetadata = AtomParsers.parseUdta(udta).first;
+      if (udtaMetadata != null) {
+        gaplessInfoHolder.setFromMetadata(udtaMetadata);
+      }
+    }
+
     // Construction of tracks and sample tables.
     List<TrackSampleTable> sampleTables =
         parseTraks(
             moov,
-            new GaplessInfoHolder(),
+            gaplessInfoHolder,
             duration,
             drmInitData,
             /* ignoreEditLists= */ (flags & FLAG_WORKAROUND_IGNORE_EDIT_LISTS) != 0,
